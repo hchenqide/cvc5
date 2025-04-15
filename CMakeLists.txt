@@ -537,6 +537,8 @@ endif()
 
 find_package(CaDiCaL REQUIRED)
 
+find_package(MinisatUP REQUIRED)
+
 if(USE_CLN)
   set(GPL_LIBS "${GPL_LIBS} cln")
   find_package(CLN 1.2.2 REQUIRED)
