@@ -15,7 +15,8 @@
 
 #include "prop/sat_solver_factory.h"
 
-#include "prop/cadical.h"
+//#include "prop/cadical.h"
+#include "prop/minisatup.h"
 #include "prop/cryptominisat.h"
 #include "prop/kissat.h"
 #include "prop/minisat/minisat.h"
@@ -52,7 +53,8 @@ CDCLTSatSolver* SatSolverFactory::createCadical(Env& env,
                                                 ResourceManager* resmgr,
                                                 const std::string& name)
 {
-  CadicalSolver* res = new CadicalSolver(env, registry, name);
+  //CadicalSolver* res = new CadicalSolver(env, registry, name);
+  MinisatUPSolver* res = new MinisatUPSolver(env, registry, name);
   res->init();
   res->setResourceLimit(resmgr);
   return res;
@@ -64,7 +66,8 @@ CDCLTSatSolver* SatSolverFactory::createCadicalCDCLT(
     ResourceManager* resmgr,
     const std::string& name)
 {
-  CadicalSolver* res = new CadicalSolver(env, registry, name);
+  //CadicalSolver* res = new CadicalSolver(env, registry, name);
+  MinisatUPSolver* res = new MinisatUPSolver(env, registry, name);
   res->setResourceLimit(resmgr);
   return res;
 }
