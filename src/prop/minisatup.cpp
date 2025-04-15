@@ -15,7 +15,7 @@
  * Implementation of the CaDiCaL SAT solver for cvc5 (bit-vectors).
  */
 
-#include "prop/cadical.h"
+#include "prop/minisatup.h"
 
 #include <deque>
 
@@ -28,7 +28,7 @@
 #include "util/statistics_registry.h"
 #include "util/string.h"
 
-#include <cadical.hpp>
+#include <minisatup.h>
 
 namespace cvc5::internal {
 namespace prop {
@@ -71,14 +71,14 @@ CadicalVar toCadicalVar(SatVariable var) { return var; }
 
 }  // namespace helper functions
 
-class CadicalPropagator : public CaDiCaL::ExternalPropagator,
-                          public CaDiCaL::FixedAssignmentListener
+class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
+                            public MinisatUP::FixedAssignmentListener
 {
  public:
-  CadicalPropagator(prop::TheoryProxy* proxy,
-                    context::Context* context,
-                    CaDiCaL::Solver& solver,
-                    StatisticsRegistry& stats)
+  MinisatUPPropagator(prop::TheoryProxy* proxy,
+                      context::Context* context,
+                      MinisatUP::Solver& solver,
+                      StatisticsRegistry& stats)
       : d_proxy(proxy), d_context(*context), d_solver(solver), d_stats(stats)
   {
     d_var_info.emplace_back();  // 0: Not used
@@ -917,7 +917,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
 
   /** The SAT context. */
   context::Context& d_context;
-  CaDiCaL::Solver& d_solver;
+  MinisatUP::Solver& d_solver;
 
   /** Struct to store information on variables. */
   struct VarInfo
@@ -1048,7 +1048,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
   } d_stats;
 };
 
-class ClauseLearner : public CaDiCaL::Learner
+class ClauseLearner : public MinisatUP::Learner
 {
  public:
   ClauseLearner(TheoryProxy& proxy, int32_t clause_size)
@@ -1084,11 +1084,11 @@ class ClauseLearner : public CaDiCaL::Learner
   int32_t d_max_clause_size;
 };
 
-CadicalSolver::CadicalSolver(Env& env,
-                             StatisticsRegistry& registry,
-                             const std::string& name)
+MinisatUPSolver::MinisatUPSolver(Env& env,
+                                 StatisticsRegistry& registry,
+                                 const std::string& name)
     : EnvObj(env),
-      d_solver(new CaDiCaL::Solver()),
+      d_solver(new MinisatUP::Solver()),
       d_context(context()),
       // Note: CaDiCaL variables start with index 1 rather than 0 since negated
       //       literals are represented as the negation of the index.
@@ -1098,7 +1098,7 @@ CadicalSolver::CadicalSolver(Env& env,
 {
 }
 
-void CadicalSolver::init()
+void MinisatUPSolver::init()
 {
   d_solver->set("quiet", 1);  // CaDiCaL is verbose by default
 
@@ -1138,13 +1138,13 @@ void CadicalSolver::init()
   }
 }
 
-CadicalSolver::~CadicalSolver() {}
+MinisatUPSolver::~MinisatUPSolver() {}
 
 /**
  * Terminator class that notifies CaDiCaL to terminate when the resource limit
  * is reached (used for resource limits specified via --rlimit or --tlimit).
  */
-class ResourceLimitTerminator : public CaDiCaL::Terminator
+class ResourceLimitTerminator : public MinisatUP::Terminator
 {
  public:
   ResourceLimitTerminator(ResourceManager& resmgr) : d_resmgr(resmgr){};
@@ -1159,13 +1159,13 @@ class ResourceLimitTerminator : public CaDiCaL::Terminator
   ResourceManager& d_resmgr;
 };
 
-void CadicalSolver::setResourceLimit(ResourceManager* resmgr)
+void MinisatUPSolver::setResourceLimit(ResourceManager* resmgr)
 {
   d_terminator.reset(new ResourceLimitTerminator(*resmgr));
   d_solver->connect_terminator(d_terminator.get());
 }
 
-SatValue CadicalSolver::_solve(const std::vector<SatLiteral>& assumptions)
+SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
 {
   if (d_propagator)
   {
@@ -1212,7 +1212,7 @@ SatValue CadicalSolver::_solve(const std::vector<SatLiteral>& assumptions)
 
 /* SatSolver Interface ------------------------------------------------------ */
 
-ClauseId CadicalSolver::addClause(SatClause& clause, bool removable)
+ClauseId MinisatUPSolver::addClause(SatClause& clause, bool removable)
 {
   if (d_propagator && TraceIsOn("cadical::propagator"))
   {
@@ -1245,7 +1245,7 @@ ClauseId CadicalSolver::addClause(SatClause& clause, bool removable)
   return ClauseIdError;
 }
 
-ClauseId CadicalSolver::addXorClause(SatClause& clause,
+ClauseId MinisatUPSolver::addXorClause(SatClause& clause,
                                      bool rhs,
                                      bool removable)
 {
@@ -1253,7 +1253,7 @@ ClauseId CadicalSolver::addXorClause(SatClause& clause,
   return 0;
 }
 
-SatVariable CadicalSolver::newVar(bool isTheoryAtom, bool canErase)
+SatVariable MinisatUPSolver::newVar(bool isTheoryAtom, bool canErase)
 {
   ++d_statistics.d_numVariables;
   if (d_propagator)
@@ -1263,30 +1263,30 @@ SatVariable CadicalSolver::newVar(bool isTheoryAtom, bool canErase)
   return d_nextVarIdx++;
 }
 
-SatVariable CadicalSolver::trueVar() { return d_true; }
+SatVariable MinisatUPSolver::trueVar() { return d_true; }
 
-SatVariable CadicalSolver::falseVar() { return d_false; }
+SatVariable MinisatUPSolver::falseVar() { return d_false; }
 
-SatValue CadicalSolver::solve() { return _solve({}); }
+SatValue MinisatUPSolver::solve() { return _solve({}); }
 
-SatValue CadicalSolver::solve(long unsigned int&)
+SatValue MinisatUPSolver::solve(long unsigned int&)
 {
   Unimplemented() << "Setting limits for CaDiCaL not supported yet";
   return SatValue::SAT_VALUE_UNKNOWN;
 };
 
-SatValue CadicalSolver::solve(const std::vector<SatLiteral>& assumptions)
+SatValue MinisatUPSolver::solve(const std::vector<SatLiteral>& assumptions)
 {
   return _solve(assumptions);
 }
 
-bool CadicalSolver::setPropagateOnly()
+bool MinisatUPSolver::setPropagateOnly()
 {
   d_solver->limit("decisions", 0); /* Gets reset after next solve() call. */
   return true;
 }
 
-void CadicalSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
+void MinisatUPSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
 {
   for (const SatLiteral& lit : d_assumptions)
   {
@@ -1297,26 +1297,26 @@ void CadicalSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
   }
 }
 
-void CadicalSolver::interrupt() { d_solver->terminate(); }
+void MinisatUPSolver::interrupt() { d_solver->terminate(); }
 
-SatValue CadicalSolver::value(SatLiteral l) { return d_propagator->value(l); }
+SatValue MinisatUPSolver::value(SatLiteral l) { return d_propagator->value(l); }
 
-SatValue CadicalSolver::modelValue(SatLiteral l)
+SatValue MinisatUPSolver::modelValue(SatLiteral l)
 {
   Assert(d_inSatMode);
   auto val = d_solver->val(toCadicalLit(l.getSatVariable()));
   return toSatValueLit(l.isNegated() ? -val : val);
 }
 
-uint32_t CadicalSolver::getAssertionLevel() const
+uint32_t MinisatUPSolver::getAssertionLevel() const
 {
   Assert(d_propagator);
   return d_propagator->current_user_level();
 }
 
-bool CadicalSolver::ok() const { return d_inSatMode; }
+bool MinisatUPSolver::ok() const { return d_inSatMode; }
 
-CadicalSolver::Statistics::Statistics(StatisticsRegistry& registry,
+MinisatUPSolver::Statistics::Statistics(StatisticsRegistry& registry,
                                       const std::string& prefix)
     : d_numSatCalls(registry.registerInt(prefix + "cadical::calls_to_solve")),
       d_numVariables(registry.registerInt(prefix + "cadical::variables")),
@@ -1327,11 +1327,11 @@ CadicalSolver::Statistics::Statistics(StatisticsRegistry& registry,
 
 /* CDCLTSatSolver Interface ------------------------------------------------- */
 
-void CadicalSolver::initialize(prop::TheoryProxy* theoryProxy,
+void MinisatUPSolver::initialize(prop::TheoryProxy* theoryProxy,
                                PropPfManager* ppm)
 {
   d_proxy = theoryProxy;
-  d_propagator.reset(new CadicalPropagator(
+  d_propagator.reset(new MinisatUPPropagator(
       theoryProxy, d_context, *d_solver, statisticsRegistry()));
   if (!d_env.getPlugins().empty())
   {
@@ -1342,7 +1342,7 @@ void CadicalSolver::initialize(prop::TheoryProxy* theoryProxy,
   init();
 }
 
-void CadicalSolver::push()
+void MinisatUPSolver::push()
 {
   d_context->push();  // SAT context for cvc5
   // Push new user level
@@ -1354,7 +1354,7 @@ void CadicalSolver::push()
   d_propagator->set_activation_lit(alit);
 }
 
-void CadicalSolver::pop()
+void MinisatUPSolver::pop()
 {
   d_context->pop();  // SAT context for cvc5
   d_propagator->user_pop();
@@ -1362,24 +1362,24 @@ void CadicalSolver::pop()
   // explicitly here
 }
 
-void CadicalSolver::resetTrail()
+void MinisatUPSolver::resetTrail()
 {
   // Reset SAT context to decision level 0
   d_propagator->notify_backtrack(0);
 }
 
-void CadicalSolver::preferPhase(SatLiteral lit)
+void MinisatUPSolver::preferPhase(SatLiteral lit)
 {
   Trace("cadical::propagator") << "phase: " << lit << std::endl;
   d_propagator->phase(lit);
 }
 
-bool CadicalSolver::isDecision(SatVariable var) const
+bool MinisatUPSolver::isDecision(SatVariable var) const
 {
   return d_solver->is_decision(toCadicalVar(var));
 }
 
-bool CadicalSolver::isFixed(SatVariable var) const
+bool MinisatUPSolver::isFixed(SatVariable var) const
 {
   if (d_propagator)
   {
@@ -1388,7 +1388,7 @@ bool CadicalSolver::isFixed(SatVariable var) const
   return d_solver->fixed(toCadicalVar(var));
 }
 
-std::vector<SatLiteral> CadicalSolver::getDecisions() const
+std::vector<SatLiteral> MinisatUPSolver::getDecisions() const
 {
   std::vector<SatLiteral> decisions;
   for (SatLiteral lit : d_propagator->get_decisions())
@@ -1401,9 +1401,9 @@ std::vector<SatLiteral> CadicalSolver::getDecisions() const
   return decisions;
 }
 
-std::vector<Node> CadicalSolver::getOrderHeap() const { return {}; }
+std::vector<Node> MinisatUPSolver::getOrderHeap() const { return {}; }
 
-std::shared_ptr<ProofNode> CadicalSolver::getProof()
+std::shared_ptr<ProofNode> MinisatUPSolver::getProof()
 {
   // NOTE: we could return a DRAT_REFUTATION or LRAT_REFUTATION proof node
   // consisting of a single step, referencing the files for the DIMACS + proof.

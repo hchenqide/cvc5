@@ -17,30 +17,30 @@
 
 #include "cvc5_private.h"
 
-#ifndef CVC5__PROP__CADICAL_H
-#define CVC5__PROP__CADICAL_H
+#ifndef CVC5__PROP__MINISATUP_H
+#define CVC5__PROP__MINISATUP_H
 
 #include "context/cdhashset.h"
 #include "prop/sat_solver.h"
 #include "smt/env_obj.h"
 
-namespace CaDiCaL {
+namespace MinisatUP {
 class Solver;
 class Terminator;
-}  // namespace CaDiCaL
+}  // namespace MinisatUP
 
 namespace cvc5::internal {
 namespace prop {
 
-class CadicalPropagator;
+class MinisatUPPropagator;
 class ClauseLearner;
 
-class CadicalSolver : public CDCLTSatSolver, protected EnvObj
+class MinisatUPSolver : public CDCLTSatSolver, protected EnvObj
 {
   friend class SatSolverFactory;
 
  public:
-  ~CadicalSolver() override;
+  ~MinisatUPSolver() override;
 
   /* SatSolver interface -------------------------------------------------- */
 
@@ -101,9 +101,9 @@ class CadicalSolver : public CDCLTSatSolver, protected EnvObj
    * @param registry  The associated statistics registry.
    * @param name      The name of the SAT solver.
    */
-  CadicalSolver(Env& env,
-                StatisticsRegistry& registry,
-                const std::string& name = "");
+  MinisatUPSolver(Env& env,
+                  StatisticsRegistry& registry,
+                  const std::string& name = "");
 
   /**
    * Initialize SAT solver instance.
@@ -120,16 +120,16 @@ class CadicalSolver : public CDCLTSatSolver, protected EnvObj
   SatValue _solve(const std::vector<SatLiteral>& assumptions);
 
   /** The wrapped CaDiCaL instance. */
-  std::unique_ptr<CaDiCaL::Solver> d_solver;
+  std::unique_ptr<MinisatUP::Solver> d_solver;
   /** The CaDiCaL terminator (for termination via resource manager). */
-  std::unique_ptr<CaDiCaL::Terminator> d_terminator;
+  std::unique_ptr<MinisatUP::Terminator> d_terminator;
 
   /** Context for synchronizing the SAT solver when in CDCL(T) mode. */
   context::Context* d_context = nullptr;
   /** The associated theory proxy (for CDCL(T) mode). */
   prop::TheoryProxy* d_proxy = nullptr;
   /** The CaDiCaL propagator (for CDCL(T) mode). */
-  std::unique_ptr<CadicalPropagator> d_propagator;
+  std::unique_ptr<MinisatUPPropagator> d_propagator;
   /** Clause learner instance for notifications about learned clauses. */
   std::unique_ptr<ClauseLearner> d_clause_learner;
 
@@ -167,4 +167,4 @@ class CadicalSolver : public CDCLTSatSolver, protected EnvObj
 }  // namespace prop
 }  // namespace cvc5::internal
 
-#endif  // CVC5__PROP__CADICAL_H
+#endif  // CVC5__PROP__MINISATUP_H
