@@ -119,11 +119,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       auto& info = d_var_info[var];
 
       // Only consider active variables
+// Chenqi: we can assert(info.is_active) if non active variables are fixed as units
+      Assert(info.is_active); // Chenqi: test
       if (!info.is_active)
       {
         continue;
       }
-// Chenqi: we can assert(info.is_active) if non active variables are fixed as units
 
       bool is_decision = d_solver.is_decision(lit);
 // Chenqi: only one in each level is decision so checking everyone is not necessary, maybe the decision literal can come with notify_new_decision_level, or the first notified assignment, and is_decision() can be removed
@@ -140,6 +141,8 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       }
 
       Assert(info.assignment == 0 || info.assignment == lit);
+// Chenqi: how chould it be already assigned? and why couldn't it be the negation?
+      Assert(info.assignment == 0); // Chenqi: test
 
       // Only notify theory proxy if variable was assigned a new value, not if
       // it got fixed after assignment already happend.
@@ -175,6 +178,8 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     SatVariable var = slit.getSatVariable();
 
     // We don't care about non-observed variables
+// Chenqi: is it possible that the variable is not allocated?
+    Assert(var < d_var_info.size()); // Chenqi: test
     if (var >= d_var_info.size())
     {
       return;
@@ -258,6 +263,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       auto& info = d_var_info[var];
       Trace("cadical::propagator") << "unassign: " << var << std::endl;
       info.assignment = 0;
+      Assert(!info.is_fixed); // Chenqi: test
     }
 // Chenqi: where are the fixed theory literals resent?
 
@@ -604,6 +610,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       if (info.is_fixed)
       {
         int32_t val = lit.isNegated() ? -info.assignment : info.assignment;
+// Chenqi: this assertion might not hold, because in backtrack, fixed variables are also unassigned
         Assert(val != 0);
         if (val > 0)
         {
@@ -798,7 +805,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // higher user level, we have to renotify the fixed literal in the current
     // level (or in the user level of the next solve call). This happens by
     // pushing the literal onto the d_renotify_fixed vector.
-    Assert(d_assignments.empty()); // Chenqi: test
+// Chenqi: d_assignments only contains literals notified at decision level 0, not all fixed literals
     auto it = d_assignments.begin();
     while (it != d_assignments.end())
     {
