@@ -653,6 +653,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // Since activation literals are not tracked here, we have to make sure to
     // properly resize d_var_info.
 // Chenqi: I think activation literals are also tracked here, so only assert is ok, need to test
+    Assert(d_var_info.size() == var); // Chenqi: test
     if (var > d_var_info.size())
     {
       d_var_info.resize(var);
@@ -764,8 +765,9 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       // solve call.
       if (info.is_fixed && info.is_theory_atom
           && info.level_intro <= user_level)
-// Chenqi: what if the literal is not theory_atom but still needed for the previous level?
       {
+// Chenqi: if the variable is from the higher level, then this should always be false, and there's no need to keep info.level_intro
+        Assert(false); // Chenqi: test
         fixed.push_back(var);
       }
       else
@@ -783,8 +785,8 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       }
     }
     // Re-add fixed active vars in the order they were added to d_active_vars.
+    Assert(fixed.empty()); // Chenqi: test
     d_active_vars.insert(d_active_vars.end(), fixed.rbegin(), fixed.rend());
-// Chenqi: this re-adding can be just done in-place in d_active_vars by filtering and shifting
 
     // We are at decicion level 0 at this point.
     Assert(d_decisions.empty());
@@ -796,6 +798,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // higher user level, we have to renotify the fixed literal in the current
     // level (or in the user level of the next solve call). This happens by
     // pushing the literal onto the d_renotify_fixed vector.
+    Assert(d_assignments.empty()); // Chenqi: test
     auto it = d_assignments.begin();
     while (it != d_assignments.end())
     {
