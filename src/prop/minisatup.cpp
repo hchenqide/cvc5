@@ -119,8 +119,6 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       auto& info = d_var_info[var];
 
       // Only consider active variables
-// Chenqi: we can assert(info.is_active) if non active variables are fixed as units
-      Assert(info.is_active); // Chenqi: test
       if (!info.is_active)
       {
         continue;
@@ -477,14 +475,19 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
     ++d_stats.cbPropagate;
     Trace("cadical::propagator") << "cb::propagate" << std::endl;
+
+    // MinisatUP: activation literals as assumptions are already processed before cb_propagate() is called
+    Assert(d_decisions.size() >= current_user_level());
+
     if (d_propagations.empty())
     {
       // Only propagate if all activation literals are processed. Activation
       // literals are always assumed first. If we don't do this, explanations
       // for theory propgations may force activation literals to different
       // values before they can get decided on.
-      if (d_decisions.size() < current_user_level())
-      {
+// Chenqi: how can we compare decision level with user level here?
+// Chenqi: current_user_level() equals the number of activation literals, which equals the size of assumptions, but in minisatup all assumptions are now first processed before calling cb_propagate
+      if (d_decisions.size() < current_user_level()) {
         return 0;
       }
       d_proxy->theoryCheck(theory::Theory::Effort::EFFORT_STANDARD);
@@ -937,7 +940,18 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     SatLiteral next = d_propagations.front();
     d_propagations.pop_front();
     Trace("cadical::propagator") << "propagate: " << next << std::endl;
-    return toCadicalLit(next);
+
+// Chenqi: filter out literals that are already assigned true, also, is it possible we have false literals here?
+
+    // MinisatUP: if next is already assigned, skip
+    int lit = toCadicalLit(next);
+    SatVariable var = next.getSatVariable();
+    auto& info = d_var_info[var];
+    Assert(info.assignment == 0 || info.assignment == lit);
+    if (info.assignment == lit) {
+      return next_propagation();
+    }
+    return lit;
   }
 
   /** The associated theory proxy. */
@@ -1205,6 +1219,7 @@ SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
   d_assumptions.clear();
   if (d_propagator)
   {
+// Chenqi: if propagator is not initialized, then there will be no user push/pop and activation literals
     // Assume activation literals for all active user levels.
     for (const auto& lit : d_propagator->activation_literals())
     {
