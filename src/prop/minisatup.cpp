@@ -123,9 +123,10 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       {
         continue;
       }
+// Chenqi: we can assert(info.is_active) if non active variables are fixed as units
 
       bool is_decision = d_solver.is_decision(lit);
-
+// Chenqi: only one in each level is decision so checking everyone is not necessary, maybe the decision literal can come with notify_new_decision_level, or the first notified assignment, and is_decision() can be removed
       Trace("cadical::propagator")
           << "notif::assignment: [" << (is_decision ? "d" : "p") << "] " << slit
           << " (level: " << d_decisions.size()
@@ -258,6 +259,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       Trace("cadical::propagator") << "unassign: " << var << std::endl;
       info.assignment = 0;
     }
+// Chenqi: where are the fixed theory literals resent?
 
     // Notify theory proxy about backtrack
     d_proxy->notifyBacktrack();
@@ -278,6 +280,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    * @return true If the current model is not in conflict with the theories.
    */
   bool cb_check_found_model(const std::vector<int>& model) override
+// Chenqi: the model parameter is never referenced, and the assignments are already notified
   {
     Trace("cadical::propagator") << "cb::check_found_model" << std::endl;
     bool recheck = false;
@@ -607,6 +610,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
           // Clause satisfied by fixed literal, no clause added
           return;
         }
+// Chenqi: if val < 0, skip the literal from the clause
       }
       lits.push_back(toCadicalLit(lit));
     }
@@ -617,6 +621,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       if (alit != undefSatLiteral)
       {
         lits.insert(lits.begin(), toCadicalLit(alit));
+// Chenqi: no need to insert to front which is expensive
       }
       // Do not immediately add clauses added during search. We have to buffer
       // them and add them during the cb_add_reason_clause_lit callback.
@@ -647,6 +652,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   {
     // Since activation literals are not tracked here, we have to make sure to
     // properly resize d_var_info.
+// Chenqi: I think activation literals are also tracked here, so only assert is ok, need to test
     if (var > d_var_info.size())
     {
       d_var_info.resize(var);
@@ -758,6 +764,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       // solve call.
       if (info.is_fixed && info.is_theory_atom
           && info.level_intro <= user_level)
+// Chenqi: what if the literal is not theory_atom but still needed for the previous level?
       {
         fixed.push_back(var);
       }
@@ -772,10 +779,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
         // for incremental problems with many check-sat calls.
         d_solver.add(toCadicalLit(var));
         d_solver.add(0);
+// Chenqi: if the unit is just added, then remove_observed_var is no longer necessary
       }
     }
     // Re-add fixed active vars in the order they were added to d_active_vars.
     d_active_vars.insert(d_active_vars.end(), fixed.rbegin(), fixed.rend());
+// Chenqi: this re-adding can be just done in-place in d_active_vars by filtering and shifting
 
     // We are at decicion level 0 at this point.
     Assert(d_decisions.empty());
@@ -958,6 +967,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    * activation literals we can simulate push/pop of clauses in the SAT solver.
    */
   std::vector<SatLiteral> d_activation_literals;
+// Chenqi: get activation literals as the first literals of each level in d_active_vars
 
   /** List of fixed literals to be re-notified in lower user level. */
   std::vector<SatLiteral> d_renotify_fixed;
@@ -1352,6 +1362,7 @@ void MinisatUPSolver::push()
   // introduction level is the current user level.
   SatVariable alit = newVar(false);
   d_propagator->set_activation_lit(alit);
+// Chenqi: pass the activation literal to user_push to be set in accordance with user_pop
 }
 
 void MinisatUPSolver::pop()
