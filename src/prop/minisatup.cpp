@@ -158,6 +158,15 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
           d_proxy->enqueueTheoryLiteral(slit);
         }
       }
+
+      // MinisatUP: notify_fixed_assignment is not implemented, set is_fixed if current decision level is 0
+      Assert(d_decisions.size() == d_assignment_control.size());
+      if (d_decisions.size() == 0)
+      {
+        Assert(!info.is_fixed);
+        info.is_fixed = true;
+        info.level_fixed = current_user_level();
+      }
     }
   }
 
