@@ -801,6 +801,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
         d_solver.add(toCadicalLit(var));
         d_solver.add(0);
 // Chenqi: if the unit is just added, then remove_observed_var is no longer necessary
+// Chenqi: is it possible when the negation literal is fixed and this will cause unsat?
       }
     }
     // Re-add fixed active vars in the order they were added to d_active_vars.
