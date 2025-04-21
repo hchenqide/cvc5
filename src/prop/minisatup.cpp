@@ -940,15 +940,17 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
     SatLiteral next = d_propagations.front();
     d_propagations.pop_front();
-    Trace("cadical::propagator") << "propagate: " << next << std::endl;
 
 // Chenqi: filter out literals that are already assigned true, also, is it possible we have false literals here?
+// Chenqi: yes, there can be false literals
 
-    // MinisatUP: if next is already assigned, skip
     int lit = toCadicalLit(next);
     SatVariable var = next.getSatVariable();
     auto& info = d_var_info[var];
-    Assert(info.assignment == 0 || info.assignment == lit);
+
+    Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl;
+
+    // MinisatUP: if next is already assigned true, skip
     if (info.assignment == lit) {
       return next_propagation();
     }
