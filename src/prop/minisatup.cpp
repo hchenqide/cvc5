@@ -954,6 +954,16 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     if (info.assignment == lit) {
       return next_propagation();
     }
+    // MinisatUP: if next is assigned false, get the reason clause, add it to the front of d_new_clauses, and return 0
+    if (info.assignment == -lit) {
+      SatClause clause;
+      d_proxy->explainPropagation(next, clause);
+      d_new_clauses.push_front(0);
+      for (const SatLiteral& l : clause) {
+        d_new_clauses.push_front(toCadicalLit(l));
+      }
+      return 0;
+    }
     return lit;
   }
 
