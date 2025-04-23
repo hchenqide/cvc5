@@ -138,7 +138,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
         d_decisions.back() = slit;
       }
 
-      Assert(info.assignment == 0 || info.assignment == lit);
+      Assert(info.assignment == 0 || (info.assignment == lit && info.is_fixed)); // Chenqi: test
 
       // Only notify theory proxy if variable was assigned a new value, not if
       // it got fixed after assignment already happend.
@@ -154,6 +154,8 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
           d_proxy->enqueueTheoryLiteral(slit);
         }
       }
+
+      Assert(d_decisions.size() > 0 || info.is_fixed); // Chenqi: test (if at decision level 0, then must be fixed)
     }
   }
 
@@ -174,6 +176,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     SatVariable var = slit.getSatVariable();
 
     // We don't care about non-observed variables
+    Assert(var < d_var_info.size()); // Chenqi: test
     if (var >= d_var_info.size())
     {
       return;
@@ -191,6 +194,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
         << "notif::fixed assignment: " << slit << std::endl;
 
     // Mark as fixed.
+    Assert(info.level_intro == 0); // Chenqi: test
     Assert(!info.is_fixed);
     info.is_fixed = true;
     info.level_fixed = current_user_level();
@@ -255,7 +259,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       d_assignments.pop_back();
       SatVariable var = lit.getSatVariable();
       auto& info = d_var_info[var];
-      Trace("cadical::propagator") << "unassign: " << var << std::endl;
+      Trace("cadical::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
       info.assignment = 0;
     }
 
@@ -647,6 +651,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
   {
     // Since activation literals are not tracked here, we have to make sure to
     // properly resize d_var_info.
+    Assert(d_var_info.size() == var); // Chenqi: test
     if (var > d_var_info.size())
     {
       d_var_info.resize(var);
@@ -759,6 +764,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       if (info.is_fixed && info.is_theory_atom
           && info.level_intro <= user_level)
       {
+        Assert(false); // Chenqi: test
         fixed.push_back(var);
       }
       else
@@ -775,6 +781,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       }
     }
     // Re-add fixed active vars in the order they were added to d_active_vars.
+    Assert(fixed.empty()); // Chenqi: test
     d_active_vars.insert(d_active_vars.end(), fixed.rbegin(), fixed.rend());
 
     // We are at decicion level 0 at this point.
@@ -908,7 +915,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     }
     SatLiteral next = d_propagations.front();
     d_propagations.pop_front();
-    Trace("cadical::propagator") << "propagate: " << next << std::endl;
+    Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << d_var_info[next.getSatVariable()].assignment << ")" << std::endl; // Chenqi: test
     return toCadicalLit(next);
   }
 
