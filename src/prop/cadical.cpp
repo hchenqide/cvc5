@@ -101,7 +101,11 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       {
         Trace("cadical::propagator") << lit << " ";
       }
-      Trace("cadical::propagator") << "}" << std::endl;
+      // Chenqi: test
+      Trace("cadical::propagator") << "}"
+                                   << " (level: " << d_decisions.size()
+                                   << ", level_user: " << current_user_level()
+                                   << ")" << std::endl;
     }
     ++d_stats.notifyAssignment;
     
@@ -126,11 +130,13 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
 
       bool is_decision = d_solver.is_decision(lit);
 
+      // Chenqi: test
       Trace("cadical::propagator")
           << "notif::assignment: [" << (is_decision ? "d" : "p") << "] " << slit
-          << " (level: " << d_decisions.size()
-          << ", level_intro: " << info.level_intro
-          << ", level_user: " << current_user_level() << ")" << std::endl;
+          << " (level_intro: " << info.level_intro
+          << ", existing_assignment: " << info.assignment
+          << (info.is_fixed ? ", fixed" : "")
+          << ")" << std::endl;
 
       // Save decision variables
       if (is_decision)
@@ -504,9 +510,16 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       }
       d_reason.insert(d_reason.end(), clause.begin(), clause.end());
       d_processing_reason = true;
-      Trace("cadical::propagator")
-          << "cb::reason: " << slit << ", size: " << d_reason.size()
-          << std::endl;
+      // Chenqi: test
+      if (TraceIsOn("cadical::propagator"))
+      {
+        Trace("cadical::propagator") << "cb::reason: " << slit << ",";
+        for (const SatLiteral& lit : d_reason)
+        {
+          Trace("cadical::propagator") << " " << lit;
+        }
+        Trace("cadical::propagator") << " 0" << std::endl;
+      }
     }
 
     // We are done processing the reason for propagated_lit.
@@ -731,6 +744,11 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
    */
   void user_pop()
   {
+    // Chenqi: test
+    // We are at decicion level 0 at this point.
+    Assert(d_decisions.empty());
+    Assert(d_assignment_control.empty());
+
     Trace("cadical::propagator")
         << "user pop: " << d_active_vars_control.size();
     size_t pop_to = d_active_vars_control.back();
@@ -751,6 +769,10 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     // Unregister popped variables so that CaDiCaL does not notify us anymore
     // about assignments.
     Assert(pop_to <= d_active_vars.size());
+    // Chenqi: test
+    for (size_t i = pop_to; i < d_active_vars.size(); ++i) {
+      d_var_info[d_active_vars[i]].is_active = false;
+    }
     std::vector<SatVariable> fixed;
     while (d_active_vars.size() > pop_to)
     {
@@ -770,7 +792,6 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       else
       {
         Trace("cadical::propagator") << "set inactive: " << var << std::endl;
-        d_var_info[var].is_active = false;
         d_solver.remove_observed_var(toCadicalVar(var));
         Assert(info.level_intro > user_level);
         // Fix value of inactive variables in order to avoid CaDiCaL from
@@ -784,9 +805,6 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     Assert(fixed.empty()); // Chenqi: test
     d_active_vars.insert(d_active_vars.end(), fixed.rbegin(), fixed.rend());
 
-    // We are at decicion level 0 at this point.
-    Assert(d_decisions.empty());
-    Assert(d_assignment_control.empty());
     // At this point, only fixed literals will be on d_assignments, now we have
     // to determine which of these are still relevant in the current user
     // level. If the variable is still active here, it means that it is still
