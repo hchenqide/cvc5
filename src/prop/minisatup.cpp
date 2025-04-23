@@ -101,7 +101,11 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       {
         Trace("cadical::propagator") << lit << " ";
       }
-      Trace("cadical::propagator") << "}" << std::endl;
+      // Chenqi: test
+      Trace("cadical::propagator") << "}"
+                                   << " (level: " << d_decisions.size()
+                                   << ", level_user: " << current_user_level()
+                                   << ")" << std::endl;
     }
     ++d_stats.notifyAssignment;
     
@@ -126,11 +130,13 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
       bool is_decision = d_solver.is_decision(lit);
 // Chenqi: only one in each level is decision so checking everyone is not necessary, maybe the decision literal can come with notify_new_decision_level, or the first notified assignment, and is_decision() can be removed
+      // Chenqi: test
       Trace("cadical::propagator")
           << "notif::assignment: [" << (is_decision ? "d" : "p") << "] " << slit
-          << " (level: " << d_decisions.size()
-          << ", level_intro: " << info.level_intro
-          << ", level_user: " << current_user_level() << ")" << std::endl;
+          << " (level_intro: " << info.level_intro
+          << ", existing_assignment: " << info.assignment
+          << (info.is_fixed ? ", fixed" : "")
+          << ")" << std::endl;
 
       // Save decision variables
       if (is_decision)
@@ -161,7 +167,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       Assert(d_decisions.size() == d_assignment_control.size());
       if (d_decisions.size() == 0)
       {
-        Assert(info.level_intro == 0); // Chenqi: test
+        Assert(info.level_intro == 0 || (info.level_intro > 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
         Assert(!info.is_fixed);
         info.is_fixed = true;
         info.level_fixed = current_user_level();
@@ -206,7 +212,8 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
         << "notif::fixed assignment: " << slit << std::endl;
 
 // Chenqi: if a fixed variable is a unit at decision level 0, then it must also be added at user level 0, because otherwise it will be dependent on activation literals and wouldn't be a root level unit
-    Assert(info.level_intro == 0); // Chenqi: test
+// Chenqi: or it is the activation literal itself when there's a conflict within the assumptions and it will lead to unsat
+    Assert(info.level_intro == 0 || (info.level_intro > 0 && d_decisions.size() == 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
 
     // Mark as fixed.
     Assert(!info.is_fixed);
@@ -273,9 +280,9 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       d_assignments.pop_back();
       SatVariable var = lit.getSatVariable();
       auto& info = d_var_info[var];
-      Trace("cadical::propagator") << "unassign: " << var << std::endl;
+      Trace("cadical::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
       info.assignment = 0;
-      Assert(!info.is_fixed); // Chenqi: test
+      Assert(!info.is_fixed); // (MinisatUP) Chenqi: test
     }
 // Chenqi: where are the fixed theory literals resent?
 
@@ -527,9 +534,16 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       }
       d_reason.insert(d_reason.end(), clause.begin(), clause.end());
       d_processing_reason = true;
-      Trace("cadical::propagator")
-          << "cb::reason: " << slit << ", size: " << d_reason.size()
-          << std::endl;
+      // Chenqi: test
+      if (TraceIsOn("cadical::propagator"))
+      {
+        Trace("cadical::propagator") << "cb::reason: " << slit << ",";
+        for (const SatLiteral& lit : d_reason)
+        {
+          Trace("cadical::propagator") << " " << lit;
+        }
+        Trace("cadical::propagator") << " 0" << std::endl;
+      }
     }
 
     // We are done processing the reason for propagated_lit.
@@ -758,6 +772,11 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   void user_pop()
   {
+    // Chenqi: test
+    // We are at decicion level 0 at this point.
+    Assert(d_decisions.empty());
+    Assert(d_assignment_control.empty());
+
     Trace("cadical::propagator")
         << "user pop: " << d_active_vars_control.size();
     size_t pop_to = d_active_vars_control.back();
@@ -772,12 +791,18 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     Trace("cadical::propagator")
         << "disable activation lit: " << alit << std::endl;
     d_activation_literals.pop_back();
+// Chenqi: alit is no longer referenced, this activation literal is added as unit along with all other active variables
 
     size_t user_level = current_user_level();
 
     // Unregister popped variables so that CaDiCaL does not notify us anymore
     // about assignments.
     Assert(pop_to <= d_active_vars.size());
+// Chenqi: set is_active false for all variables to be inactivated before adding them as unit clauses
+    // Chenqi: test
+    for (size_t i = pop_to; i < d_active_vars.size(); ++i) {
+      d_var_info[d_active_vars[i]].is_active = false;
+    }
     std::vector<SatVariable> fixed;
     while (d_active_vars.size() > pop_to)
     {
@@ -798,25 +823,23 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       else
       {
         Trace("cadical::propagator") << "set inactive: " << var << std::endl;
-        d_var_info[var].is_active = false;
         d_solver.remove_observed_var(toCadicalVar(var));
         Assert(info.level_intro > user_level);
         // Fix value of inactive variables in order to avoid CaDiCaL from
         // deciding on them again. This make a huge difference in performance
         // for incremental problems with many check-sat calls.
+// Chenqi: here when adding a unit, sat solver might propagate inside and produce a fixed assignment on the activation literal
         d_solver.add(toCadicalLit(var));
         d_solver.add(0);
 // Chenqi: if the unit is just added, then remove_observed_var is no longer necessary
 // Chenqi: is it possible when the negation literal is fixed and this will cause unsat?
+// Chenqi: variables introduced at user level > 0 will never be fixed
       }
     }
     // Re-add fixed active vars in the order they were added to d_active_vars.
     Assert(fixed.empty()); // Chenqi: test
     d_active_vars.insert(d_active_vars.end(), fixed.rbegin(), fixed.rend());
 
-    // We are at decicion level 0 at this point.
-    Assert(d_decisions.empty());
-    Assert(d_assignment_control.empty());
     // At this point, only fixed literals will be on d_assignments, now we have
     // to determine which of these are still relevant in the current user
     // level. If the variable is still active here, it means that it is still
@@ -954,7 +977,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     SatVariable var = next.getSatVariable();
     auto& info = d_var_info[var];
 
-    Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl;
+    Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl; // Chenqi: test
 
     // MinisatUP: if next is already assigned true, skip
     if (info.assignment == lit) {
