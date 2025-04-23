@@ -161,10 +161,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       Assert(d_decisions.size() == d_assignment_control.size());
       if (d_decisions.size() == 0)
       {
+        Assert(info.level_intro == 0); // Chenqi: test
         Assert(!info.is_fixed);
         info.is_fixed = true;
         info.level_fixed = current_user_level();
       }
+// Chenqi: the variable should also be fixed if the decision level is less than the user level when the activation level is not yet assumed
     }
   }
 
@@ -202,6 +204,9 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
     Trace("cadical::propagator")
         << "notif::fixed assignment: " << slit << std::endl;
+
+// Chenqi: if a fixed variable is a unit at decision level 0, then it must also be added at user level 0, because otherwise it will be dependent on activation literals and wouldn't be a root level unit
+    Assert(info.level_intro == 0); // Chenqi: test
 
     // Mark as fixed.
     Assert(!info.is_fixed);
@@ -419,6 +424,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     if (stopSearch)
     {
       d_found_solution = cb_check_found_model({});
+// Chenqi: here new variables and clauses can be added during cb_decide(), so in minisat we can process them before actually decide
       if (d_found_solution)
       {
         Trace("cadical::propagator") << "Found solution" << std::endl;
