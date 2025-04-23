@@ -199,8 +199,9 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     Trace("cadical::propagator")
         << "notif::fixed assignment: " << slit << std::endl;
 
+    Assert(info.level_intro == 0 || (info.level_intro > 0 && d_decisions.size() == 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
+
     // Mark as fixed.
-    Assert(info.level_intro == 0); // Chenqi: test
     Assert(!info.is_fixed);
     info.is_fixed = true;
     info.level_fixed = current_user_level();
