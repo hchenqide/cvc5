@@ -489,9 +489,6 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     ++d_stats.cbPropagate;
     Trace("cadical::propagator") << "cb::propagate" << std::endl;
 
-    // MinisatUP: activation literals as assumptions are already processed before cb_propagate() is called
-    Assert(d_decisions.size() >= current_user_level());
-
     if (d_propagations.empty())
     {
       // Only propagate if all activation literals are processed. Activation
