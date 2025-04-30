@@ -450,6 +450,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
     if (!stopSearch && lit != undefSatLiteral)
     {
+      // MinisatUP: get next if variable is already assigned
+      if (d_var_info[lit.getSatVariable()].assignment != 0)
+      {
+        return cb_decide();
+      }
+
       if (!requirePhase)
       {
         int8_t phase = d_var_info[lit.getSatVariable()].phase;
