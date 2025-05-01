@@ -994,6 +994,10 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       for (const SatLiteral& l : clause) {
         d_new_clauses.push_front(toCadicalLit(l));
       }
+      SatLiteral alit = current_activation_lit();
+      if (alit != undefSatLiteral) {
+        d_new_clauses.push_front(toCadicalLit(alit));
+      }
       return 0;
     }
     return lit;
