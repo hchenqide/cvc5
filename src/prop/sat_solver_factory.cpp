@@ -14,6 +14,7 @@
  */
 
 #include "prop/sat_solver_factory.h"
+#include "options/smt_options.h"
 
 #include "prop/cadical.h"
 #include "prop/minisatup.h"
@@ -27,6 +28,9 @@ namespace prop {
 CDCLTSatSolver* SatSolverFactory::createCDCLTMinisat(
     Env& env, StatisticsRegistry& registry)
 {
+  if (env.getOptions().smt.produceProofs) {
+    return new MinisatSatSolver(env, registry);
+  }
   return new MinisatUPSolver(env, registry);
 }
 
