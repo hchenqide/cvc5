@@ -229,6 +229,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   void notify_new_decision_level() override
   {
+// Chenqi: skip if d_found_solution is true?
     d_context.push();
     d_assignment_control.push_back(d_assignments.size());
     d_decisions.emplace_back();
@@ -253,6 +254,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
     // CaDiCaL may notify us about backtracks of decisions that we were not
     // notified about. We can safely ignore them.
+    Assert(level <= d_decisions.size()); // Chenqi: test
     if (d_decisions.size() <= level)
     {
       Assert(d_decisions.size() == 0);
