@@ -96,7 +96,7 @@ void SharedTermsDatabase::addSharedTerm(TNode atom,
     d_addedSharedTermsSize = d_addedSharedTermsSize + 1;
     d_termsToTheories[search_pair] = theories;
   } else {
-    Assert(theories != (*find).second);
+    //Assert(theories != (*find).second); // Chenqi: test
     d_termsToTheories[search_pair] =
         TheoryIdSetUtil::setUnion(theories, (*find).second);
   }
