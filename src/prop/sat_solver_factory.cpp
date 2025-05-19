@@ -28,10 +28,12 @@ namespace prop {
 CDCLTSatSolver* SatSolverFactory::createCDCLTMinisat(
     Env& env, StatisticsRegistry& registry)
 {
-  if (env.getOptions().smt.produceProofs) {
-    return new MinisatSatSolver(env, registry);
+  if (!env.getOptions().smt.produceProofs) {
+    MinisatUPSolver* res = new MinisatUPSolver(env, registry, "");
+    res->setResourceLimit(env.getResourceManager());
+    return res;
   }
-  return new MinisatUPSolver(env, registry);
+  return new MinisatSatSolver(env, registry);
 }
 
 SatSolver* SatSolverFactory::createCryptoMinisat(StatisticsRegistry& registry,
