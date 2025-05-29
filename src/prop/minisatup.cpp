@@ -452,11 +452,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
     if (!stopSearch && lit != undefSatLiteral)
     {
-      // MinisatUP: get next if variable is already assigned
-      if (d_var_info[lit.getSatVariable()].assignment != 0)
-      {
-        return cb_decide();
-      }
+// Chenqi: this will be implemented in minisat
+      // // MinisatUP: get next if variable is already assigned
+      // if (d_var_info[lit.getSatVariable()].assignment != 0)
+      // {
+      //   return cb_decide();
+      // }
 
       if (!requirePhase)
       {
@@ -984,24 +985,25 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
     Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl; // Chenqi: test
 
-    // MinisatUP: if next is already assigned true, skip
-    if (info.assignment == lit) {
-      return next_propagation();
-    }
-    // MinisatUP: if next is assigned false, get the reason clause, add it to the front of d_new_clauses, and return 0
-    if (info.assignment == -lit) {
-      SatClause clause;
-      d_proxy->explainPropagation(next, clause);
-      d_new_clauses.push_front(0);
-      for (const SatLiteral& l : clause) {
-        d_new_clauses.push_front(toCadicalLit(l));
-      }
-      SatLiteral alit = current_activation_lit();
-      if (alit != undefSatLiteral) {
-        d_new_clauses.push_front(toCadicalLit(alit));
-      }
-      return 0;
-    }
+// Chenqi: this will be implemented in minisat
+    // // MinisatUP: if next is already assigned true, skip
+    // if (info.assignment == lit) {
+    //   return next_propagation();
+    // }
+    // // MinisatUP: if next is assigned false, get the reason clause, add it to the front of d_new_clauses, and return 0
+    // if (info.assignment == -lit) {
+    //   SatClause clause;
+    //   d_proxy->explainPropagation(next, clause);
+    //   d_new_clauses.push_front(0);
+    //   for (const SatLiteral& l : clause) {
+    //     d_new_clauses.push_front(toCadicalLit(l));
+    //   }
+    //   SatLiteral alit = current_activation_lit();
+    //   if (alit != undefSatLiteral) {
+    //     d_new_clauses.push_front(toCadicalLit(alit));
+    //   }
+    //   return 0;
+    // }
     return lit;
   }
 
