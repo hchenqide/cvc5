@@ -930,8 +930,6 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     {
       Trace("cadical::propagator")
           << "re-enqueue (user pop): " << lit << std::endl;
-      // Make sure to pre-register the re-enqueued theory literal
-      d_proxy->notifySatLiteral(d_proxy->getNode(lit));
       // Re-enqueue fixed theory literal
       d_proxy->enqueueTheoryLiteral(lit);
       // We are notifying fixed literals at the current user level, update the
