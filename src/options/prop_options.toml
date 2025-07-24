@@ -13,6 +13,8 @@ name   = "SAT Layer"
   name = "minisat"
 [[option.mode.CADICAL]]
   name = "cadical"
+[[option.mode.MINISATUP]]
+  name = "minisatup"
 
 [[option]]
   name       = "satRandomFreq"

@@ -31,8 +31,6 @@
 #include "util/statistics_registry.h"
 #include "util/string.h"
 
-#include <cadical.hpp>
-
 namespace cvc5::internal {
 namespace prop {
 

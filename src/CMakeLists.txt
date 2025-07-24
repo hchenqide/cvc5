@@ -1536,10 +1536,9 @@ add_dependencies(cvc5-obj CaDiCaL)
 target_include_directories(cvc5-obj SYSTEM PRIVATE ${CaDiCaL_INCLUDE_DIR})
 target_link_libraries(cvc5 PRIVATE $<BUILD_INTERFACE:CaDiCaL> $<INSTALL_INTERFACE:cadical>)
 
-add_dependencies(cvc5-obj MinisatUP::MinisatUP)
-get_target_property(MINISATUP_INCLUDE_DIR MinisatUP::MinisatUP INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(cvc5-obj SYSTEM PRIVATE ${MINISATUP_INCLUDE_DIR})
-target_link_libraries(cvc5 PRIVATE MinisatUP::MinisatUP)
+add_dependencies(cvc5-obj MiniSatUP)
+target_include_directories(cvc5-obj SYSTEM PRIVATE ${MiniSatUP_INCLUDE_DIR})
+target_link_libraries(cvc5 PRIVATE $<BUILD_INTERFACE:MiniSatUP> $<INSTALL_INTERFACE:MiniSatUP>)
 
 if(USE_CLN)
   add_dependencies(cvc5-obj CLN)

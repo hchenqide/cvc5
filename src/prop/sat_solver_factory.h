@@ -45,6 +45,11 @@ class SatSolverFactory
                                             ResourceManager* resmgr,
                                             const std::string& name = "");
 
+  static CDCLTSatSolver* createMiniSatUP(Env& env,
+                                         StatisticsRegistry& registry,
+                                         ResourceManager* resmgr,
+                                         const std::string& name = "");
+
   static SatSolver* createCryptoMinisat(StatisticsRegistry& registry,
                                         ResourceManager* resmgr,
                                         const std::string& name = "");

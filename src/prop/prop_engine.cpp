@@ -88,10 +88,22 @@ PropEngine::PropEngine(Env& env, TheoryEngine* te)
     d_satSolver =
         SatSolverFactory::createCDCLTMinisat(d_env, statisticsRegistry());
   }
-  else
+  else if (options().prop.satSolver == options::SatSolverMode::CADICAL)
   {
     d_satSolver = SatSolverFactory::createCadicalCDCLT(
         d_env, statisticsRegistry(), env.getResourceManager(), "");
+  }
+  else
+  {
+    Assert(options().prop.satSolver == options::SatSolverMode::MINISATUP);
+    if (env.isSatProofProducing()) {
+      d_satSolver =
+          SatSolverFactory::createCDCLTMinisat(d_env, statisticsRegistry());
+    }
+    else {
+      d_satSolver = SatSolverFactory::createMiniSatUP(
+          d_env, statisticsRegistry(), env.getResourceManager(), "");
+    }
   }
 
   // CNF stream and theory proxy required pointers to each other, make the

@@ -10,9 +10,9 @@
  * directory for licensing information.
  * ****************************************************************************
  *
- * Wrapper for CaDiCaL SAT Solver.
+ * Wrapper for MiniSatUP SAT Solver.
  *
- * Implementation of the CaDiCaL SAT solver for cvc5 (bit-vectors).
+ * Implementation of the MiniSatUP SAT solver for cvc5 (bit-vectors).
  */
 
 #include "prop/minisatup.h"
@@ -71,13 +71,13 @@ CadicalVar toCadicalVar(SatVariable var) { return var; }
 
 }  // namespace helper functions
 
-class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
-                            public MinisatUP::FixedAssignmentListener
+class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
+                            public MiniSatUP::FixedAssignmentListener
 {
  public:
-  MinisatUPPropagator(prop::TheoryProxy* proxy,
+  MiniSatUPPropagator(prop::TheoryProxy* proxy,
                       context::Context* context,
-                      MinisatUP::Solver& solver,
+                      MiniSatUP::Solver& solver,
                       StatisticsRegistry& stats)
       : d_proxy(proxy), d_context(*context), d_solver(solver), d_stats(stats)
   {
@@ -94,15 +94,15 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   void notify_assignment(const std::vector<int>& lits) override
   {
-    if (Trace("cadical::propagator").isConnected())
+    if (Trace("minisatup::propagator").isConnected())
     {
-      Trace("cadical::propagator") << "notif::assignments: { ";
+      Trace("minisatup::propagator") << "notif::assignments: { ";
       for (auto lit : lits)
       {
-        Trace("cadical::propagator") << lit << " ";
+        Trace("minisatup::propagator") << lit << " ";
       }
       // Chenqi: test
-      Trace("cadical::propagator") << "}"
+      Trace("minisatup::propagator") << "}"
                                    << " (level: " << d_decisions.size()
                                    << ", level_user: " << current_user_level()
                                    << ")" << std::endl;
@@ -131,7 +131,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       bool is_decision = d_solver.is_decision(lit);
 // Chenqi: only one in each level is decision so checking everyone is not necessary, maybe the decision literal can come with notify_new_decision_level, or the first notified assignment, and is_decision() can be removed
       // Chenqi: test
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "notif::assignment: [" << (is_decision ? "d" : "p") << "] " << slit
           << " (level_intro: " << info.level_intro
           << ", existing_assignment: " << info.assignment
@@ -156,14 +156,14 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
         d_assignments.push_back(slit);
         if (info.is_theory_atom)
         {
-          Trace("cadical::propagator") << "enqueue: " << slit << std::endl;
-          Trace("cadical::propagator")
+          Trace("minisatup::propagator") << "enqueue: " << slit << std::endl;
+          Trace("minisatup::propagator")
               << "node:    " << d_proxy->getNode(slit) << std::endl;
           d_proxy->enqueueTheoryLiteral(slit);
         }
       }
 
-      // MinisatUP: notify_fixed_assignment is not implemented, set is_fixed if current decision level is 0
+      // MiniSatUP: notify_fixed_assignment is not implemented, set is_fixed if current decision level is 0
       Assert(d_decisions.size() == d_assignment_control.size());
       if (d_decisions.size() == 0)
       {
@@ -208,7 +208,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
     ++d_stats.notifyFixedAssignment;
 
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "notif::fixed assignment: " << slit << std::endl;
 
 // Chenqi: if a fixed variable is a unit at decision level 0, then it must also be added at user level 0, because otherwise it will be dependent on activation literals and wouldn't be a root level unit
@@ -233,7 +233,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     d_context.push();
     d_assignment_control.push_back(d_assignments.size());
     d_decisions.emplace_back();
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "notif::decision: new level " << d_decisions.size() << std::endl;
     ++d_stats.notifyNewDecision;
   }
@@ -250,7 +250,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   void notify_backtrack(size_t level) override
   {
-    Trace("cadical::propagator") << "notif::backtrack: " << level << std::endl;
+    Trace("minisatup::propagator") << "notif::backtrack: " << level << std::endl;
 
     // CaDiCaL may notify us about backtracks of decisions that we were not
     // notified about. We can safely ignore them.
@@ -282,9 +282,9 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       d_assignments.pop_back();
       SatVariable var = lit.getSatVariable();
       auto& info = d_var_info[var];
-      Trace("cadical::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
+      Trace("minisatup::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
       info.assignment = 0;
-      Assert(!info.is_fixed); // (MinisatUP) Chenqi: test
+      Assert(!info.is_fixed); // (MiniSatUP) Chenqi: test
     }
 // Chenqi: where are the fixed theory literals resent?
 
@@ -294,7 +294,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     d_propagations.clear();
     ++d_stats.notifyBacktrack;
 
-    Trace("cadical::propagator") << "notif::backtrack end" << std::endl;
+    Trace("minisatup::propagator") << "notif::backtrack end" << std::endl;
   }
 
   /**
@@ -309,7 +309,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   bool cb_check_found_model(const std::vector<int>& model) override
 // Chenqi: the model parameter is never referenced, and the assignments are already notified
   {
-    Trace("cadical::propagator") << "cb::check_found_model" << std::endl;
+    Trace("minisatup::propagator") << "cb::check_found_model" << std::endl;
     bool recheck = false;
 
     if (d_found_solution)
@@ -323,7 +323,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // checking the model.
     if (!d_new_clauses.empty())
     {
-      Trace("cadical::propagator") << "cb::check_found_model end: new "
+      Trace("minisatup::propagator") << "cb::check_found_model end: new "
                                       "variables added via theory decision"
                                    << std::endl;
       // CaDiCaL expects us to be able to provide a reason for rejecting the
@@ -354,7 +354,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     d_proxy->getNextDecisionRequest(requirePhase, stopSearch);
     if (d_var_info.size() != size)
     {
-      Trace("cadical::propagator") << "cb::check_found_model end: new "
+      Trace("minisatup::propagator") << "cb::check_found_model end: new "
                                       "variables added via theory decision"
                                    << std::endl;
       return false;
@@ -364,13 +364,13 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // extend the model with the new variables.
     do
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "full check (recheck: " << recheck << ")" << std::endl;
       d_proxy->theoryCheck(theory::Theory::Effort::EFFORT_FULL);
       theory_propagate();
       for (const SatLiteral& p : d_propagations)
       {
-        Trace("cadical::propagator")
+        Trace("minisatup::propagator")
             << "add propagation reason: " << p << std::endl;
         SatClause clause;
         d_proxy->explainPropagation(p, clause);
@@ -391,7 +391,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
     if (d_var_info.size() != size)
     {
-      Trace("cadical::propagator") << "cb::check_found_model end: new "
+      Trace("minisatup::propagator") << "cb::check_found_model end: new "
                                       "variables added via theory check"
                                    << std::endl;
       // Same as above, until CaDiCaL's assertion that we have to have
@@ -403,7 +403,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       return false;
     }
     bool res = done();
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "cb::check_found_model end: done: " << res << std::endl;
     return res;
   }
@@ -420,7 +420,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   int cb_decide() override
   {
-    Trace("cadical::propagator") << "cb::decide" << std::endl;
+    Trace("minisatup::propagator") << "cb::decide" << std::endl;
     if (d_found_solution)
     {
       return 0;
@@ -436,24 +436,24 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 // Chenqi: here new variables and clauses can be added during cb_decide(), so in minisat we can process them before actually decide
       if (d_found_solution)
       {
-        Trace("cadical::propagator") << "Found solution" << std::endl;
+        Trace("minisatup::propagator") << "Found solution" << std::endl;
         d_found_solution = d_proxy->isDecisionEngineDone();
         if (!d_found_solution)
         {
-          Trace("cadical::propagator")
+          Trace("minisatup::propagator")
               << "Decision engine not done" << std::endl;
           lit = d_proxy->getNextDecisionRequest(requirePhase, stopSearch);
         }
       }
       else
       {
-        Trace("cadical::propagator") << "No solution found yet" << std::endl;
+        Trace("minisatup::propagator") << "No solution found yet" << std::endl;
       }
     }
     if (!stopSearch && lit != undefSatLiteral)
     {
 // Chenqi: this will be implemented in minisat
-      // // MinisatUP: get next if variable is already assigned
+      // // MiniSatUP: get next if variable is already assigned
       // if (d_var_info[lit.getSatVariable()].assignment != 0)
       // {
       //   return cb_decide();
@@ -471,10 +471,10 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
           }
         }
       }
-      Trace("cadical::propagator") << "cb::decide: " << lit << std::endl;
+      Trace("minisatup::propagator") << "cb::decide: " << lit << std::endl;
       return toCadicalLit(lit);
     }
-    Trace("cadical::propagator") << "cb::decide: 0" << std::endl;
+    Trace("minisatup::propagator") << "cb::decide: 0" << std::endl;
     return 0;
   }
 
@@ -496,7 +496,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       return 0;
     }
     ++d_stats.cbPropagate;
-    Trace("cadical::propagator") << "cb::propagate" << std::endl;
+    Trace("minisatup::propagator") << "cb::propagate" << std::endl;
 
     if (d_propagations.empty())
     {
@@ -541,14 +541,14 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       d_reason.insert(d_reason.end(), clause.begin(), clause.end());
       d_processing_reason = true;
       // Chenqi: test
-      if (TraceIsOn("cadical::propagator"))
+      if (TraceIsOn("minisatup::propagator"))
       {
-        Trace("cadical::propagator") << "cb::reason: " << slit << ",";
+        Trace("minisatup::propagator") << "cb::reason: " << slit << ",";
         for (const SatLiteral& lit : d_reason)
         {
-          Trace("cadical::propagator") << " " << lit;
+          Trace("minisatup::propagator") << " " << lit;
         }
-        Trace("cadical::propagator") << " 0" << std::endl;
+        Trace("minisatup::propagator") << " 0" << std::endl;
       }
     }
 
@@ -560,7 +560,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     }
 
     // Return next literal of the reason for propagated_lit.
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "cb::reason: " << toSatLiteral(propagated_lit) << " "
         << d_reason.front() << std::endl;
     int lit = toCadicalLit(d_reason.front());
@@ -592,7 +592,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     Assert(!d_new_clauses.empty());
     CadicalLit lit = d_new_clauses.front();
     d_new_clauses.pop_front();
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "external_clause: " << toSatLiteral(lit) << std::endl;
     return lit;
   }
@@ -621,7 +621,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     {
       val = toSatValueLit(lit.isNegated() ? -assign : assign);
     }
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "value: " << lit << ": " << val << std::endl;
     return val;
   }
@@ -710,7 +710,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     // since CaDiCaL expects all literals sent back to be observed.
     d_solver.add_observed_var(toCadicalVar(var));
     d_active_vars.push_back(var);
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "new var: " << var << " (level: " << current_user_level()
         << ", is_theory_atom: " << is_theory_atom
         << ", in_search: " << d_in_search << ")" << std::endl;
@@ -727,23 +727,23 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   {
     if (!d_new_clauses.empty())
     {
-      Trace("cadical::propagator") << "not done: pending clauses" << std::endl;
+      Trace("minisatup::propagator") << "not done: pending clauses" << std::endl;
       return false;
     }
     if (d_proxy->theoryNeedCheck())
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "not done: theory need check" << std::endl;
       return false;
     }
     if (d_found_solution)
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "done: found partial solution" << std::endl;
     }
     else
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "done: full assignment consistent" << std::endl;
     }
     return true;
@@ -754,10 +754,10 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
    */
   void user_push()
   {
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "user push: " << d_active_vars_control.size();
     d_active_vars_control.push_back(d_active_vars.size());
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << " -> " << d_active_vars_control.size() << std::endl;
   }
 
@@ -769,7 +769,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   void set_activation_lit(SatVariable& alit)
   {
     d_activation_literals.push_back(alit);
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
       << "enable activation lit: " << alit << std::endl;
   }
 
@@ -783,18 +783,18 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     Assert(d_decisions.empty());
     Assert(d_assignment_control.empty());
 
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "user pop: " << d_active_vars_control.size();
     size_t pop_to = d_active_vars_control.back();
     d_active_vars_control.pop_back();
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << " -> " << d_active_vars_control.size() << std::endl;
 
     // Disable activation literal for popped user level. The activation literal
     // is added as unit clause, which will satisfy all clauses added in this
     // user level and get garbage collected in the SAT solver.
     SatLiteral alit = current_activation_lit();
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "disable activation lit: " << alit << std::endl;
     d_activation_literals.pop_back();
 // Chenqi: alit is no longer referenced, this activation literal is added as unit along with all other active variables
@@ -828,7 +828,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       }
       else
       {
-        Trace("cadical::propagator") << "set inactive: " << var << std::endl;
+        Trace("minisatup::propagator") << "set inactive: " << var << std::endl;
         d_solver.remove_observed_var(toCadicalVar(var));
         Assert(info.level_intro > user_level);
         // Fix value of inactive variables in order to avoid CaDiCaL from
@@ -871,7 +871,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
       // Renotify fixed literals if it was fixed in a higher user level.
       if (info.is_theory_atom && info.level_fixed > user_level)
       {
-        Trace("cadical::propagator")
+        Trace("minisatup::propagator")
             << "queue renotify: " << lit
             << " (level_intro: " << info.level_intro
             << ", level_fixed: " << info.level_fixed << ")" << std::endl;
@@ -928,7 +928,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     ++d_stats.renotifyFixed;
     for (const auto& lit : d_renotify_fixed)
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "re-enqueue (user pop): " << lit << std::endl;
       // Re-enqueue fixed theory literal
       d_proxy->enqueueTheoryLiteral(lit);
@@ -950,12 +950,12 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   {
     SatClause propagated_lits;
     d_proxy->theoryPropagate(propagated_lits);
-    Trace("cadical::propagator")
+    Trace("minisatup::propagator")
         << "new propagations: " << propagated_lits.size() << std::endl;
 
     for (const auto& lit : propagated_lits)
     {
-      Trace("cadical::propagator") << "new propagation: " << lit << std::endl;
+      Trace("minisatup::propagator") << "new propagation: " << lit << std::endl;
       d_propagations.push_back(lit);
     }
   }
@@ -981,14 +981,14 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
     SatVariable var = next.getSatVariable();
     auto& info = d_var_info[var];
 
-    Trace("cadical::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl; // Chenqi: test
+    Trace("minisatup::propagator") << "propagate: " << next << " (current assignment: " << info.assignment << ")" << std::endl; // Chenqi: test
 
 // Chenqi: this will be implemented in minisat
-    // // MinisatUP: if next is already assigned true, skip
+    // // MiniSatUP: if next is already assigned true, skip
     // if (info.assignment == lit) {
     //   return next_propagation();
     // }
-    // // MinisatUP: if next is assigned false, get the reason clause, add it to the front of d_new_clauses, and return 0
+    // // MiniSatUP: if next is assigned false, get the reason clause, add it to the front of d_new_clauses, and return 0
     // if (info.assignment == -lit) {
     //   SatClause clause;
     //   d_proxy->explainPropagation(next, clause);
@@ -1010,7 +1010,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
 
   /** The SAT context. */
   context::Context& d_context;
-  MinisatUP::Solver& d_solver;
+  MiniSatUP::Solver& d_solver;
 
   /** Struct to store information on variables. */
   struct VarInfo
@@ -1104,27 +1104,27 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   {
     Statistics(StatisticsRegistry& stats)
         : renotifyFixed(
-              stats.registerInt("cadical::propagator::renotify_fixed")),
+              stats.registerInt("minisatup::propagator::renotify_fixed")),
           renotifyFixedLit(
-              stats.registerInt("cadical::propagator::renotify_fixed_lit")),
+              stats.registerInt("minisatup::propagator::renotify_fixed_lit")),
           notifyAssignment(
-              stats.registerInt("cadical::propagator::notify_assignment")),
+              stats.registerInt("minisatup::propagator::notify_assignment")),
           notifyFixedAssignment(stats.registerInt(
-              "cadical::propagator::notify_fixed_assignment")),
+              "minisatup::propagator::notify_fixed_assignment")),
           notifyNewDecision(
-              stats.registerInt("cadical::propagator::notify_new_decision")),
+              stats.registerInt("minisatup::propagator::notify_new_decision")),
           notifyBacktrack(
-              stats.registerInt("cadical::propagator::notify_backtrack")),
+              stats.registerInt("minisatup::propagator::notify_backtrack")),
           cbCheckFoundModel(
-              stats.registerInt("cadical::propagator::cb_check_found_model")),
-          cbDecide(stats.registerInt("cadical::propagator::cb_decide")),
-          cbPropagate(stats.registerInt("cadical::propagator::cb_propagate")),
+              stats.registerInt("minisatup::propagator::cb_check_found_model")),
+          cbDecide(stats.registerInt("minisatup::propagator::cb_decide")),
+          cbPropagate(stats.registerInt("minisatup::propagator::cb_propagate")),
           cbAddReasonClauseLit(stats.registerInt(
-              "cadical::propagator::cb_add_reason_clause_lit")),
+              "minisatup::propagator::cb_add_reason_clause_lit")),
           cbHasExternalClause(
-              stats.registerInt("cadical::propagator::cb_has_external_clause")),
+              stats.registerInt("minisatup::propagator::cb_has_external_clause")),
           cbAddExternalClauseLit(stats.registerInt(
-              "cadical::propagator::cb_add_external_clause_lit"))
+              "minisatup::propagator::cb_add_external_clause_lit"))
     {
     }
     IntStat renotifyFixed;
@@ -1142,7 +1142,7 @@ class MinisatUPPropagator : public MinisatUP::ExternalPropagator,
   } d_stats;
 };
 
-class ClauseLearner : public MinisatUP::Learner
+class ClauseLearner : public MiniSatUP::Learner
 {
  public:
   ClauseLearner(TheoryProxy& proxy, int32_t clause_size)
@@ -1178,11 +1178,11 @@ class ClauseLearner : public MinisatUP::Learner
   int32_t d_max_clause_size;
 };
 
-MinisatUPSolver::MinisatUPSolver(Env& env,
+MiniSatUPSolver::MiniSatUPSolver(Env& env,
                                  StatisticsRegistry& registry,
                                  const std::string& name)
     : EnvObj(env),
-      d_solver(new MinisatUP::Solver()),
+      d_solver(new MiniSatUP::Solver()),
       d_context(context()),
       // Note: CaDiCaL variables start with index 1 rather than 0 since negated
       //       literals are represented as the negation of the index.
@@ -1192,7 +1192,7 @@ MinisatUPSolver::MinisatUPSolver(Env& env,
 {
 }
 
-void MinisatUPSolver::init()
+void MiniSatUPSolver::init()
 {
   d_solver->set("quiet", 1);  // CaDiCaL is verbose by default
 
@@ -1232,13 +1232,13 @@ void MinisatUPSolver::init()
   }
 }
 
-MinisatUPSolver::~MinisatUPSolver() {}
+MiniSatUPSolver::~MiniSatUPSolver() {}
 
 /**
  * Terminator class that notifies CaDiCaL to terminate when the resource limit
  * is reached (used for resource limits specified via --rlimit or --tlimit).
  */
-class ResourceLimitTerminator : public MinisatUP::Terminator
+class ResourceLimitTerminator : public MiniSatUP::Terminator
 {
  public:
   ResourceLimitTerminator(ResourceManager& resmgr) : d_resmgr(resmgr){};
@@ -1253,17 +1253,17 @@ class ResourceLimitTerminator : public MinisatUP::Terminator
   ResourceManager& d_resmgr;
 };
 
-void MinisatUPSolver::setResourceLimit(ResourceManager* resmgr)
+void MiniSatUPSolver::setResourceLimit(ResourceManager* resmgr)
 {
   d_terminator.reset(new ResourceLimitTerminator(*resmgr));
   d_solver->connect_terminator(d_terminator.get());
 }
 
-SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
+SatValue MiniSatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
 {
   if (d_propagator)
   {
-    Trace("cadical::propagator") << "solve start" << std::endl;
+    Trace("minisatup::propagator") << "solve start" << std::endl;
     d_propagator->renotify_fixed();
   }
   TimerStat::CodeTimer codeTimer(d_statistics.d_solveTime);
@@ -1274,7 +1274,7 @@ SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
     // Assume activation literals for all active user levels.
     for (const auto& lit : d_propagator->activation_literals())
     {
-      Trace("cadical::propagator")
+      Trace("minisatup::propagator")
           << "assume activation lit: " << ~lit << std::endl;
       d_solver->assume(toCadicalLit(~lit));
     }
@@ -1284,7 +1284,7 @@ SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
   {
     if (d_propagator)
     {
-      Trace("cadical::propagator") << "assume: " << lit << std::endl;
+      Trace("minisatup::propagator") << "assume: " << lit << std::endl;
     }
     d_solver->assume(toCadicalLit(lit));
     d_assumptions.push_back(lit);
@@ -1297,7 +1297,7 @@ SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
   if (d_propagator)
   {
     Assert(res != SAT_VALUE_TRUE || d_propagator->done());
-    Trace("cadical::propagator") << "solve done: " << res << std::endl;
+    Trace("minisatup::propagator") << "solve done: " << res << std::endl;
     d_propagator->in_search(false);
   }
   ++d_statistics.d_numSatCalls;
@@ -1307,21 +1307,21 @@ SatValue MinisatUPSolver::_solve(const std::vector<SatLiteral>& assumptions)
 
 /* SatSolver Interface ------------------------------------------------------ */
 
-ClauseId MinisatUPSolver::addClause(SatClause& clause, bool removable)
+ClauseId MiniSatUPSolver::addClause(SatClause& clause, bool removable)
 {
-  if (d_propagator && TraceIsOn("cadical::propagator"))
+  if (d_propagator && TraceIsOn("minisatup::propagator"))
   {
-    Trace("cadical::propagator") << "addClause (" << removable << "):";
+    Trace("minisatup::propagator") << "addClause (" << removable << "):";
     SatLiteral alit = d_propagator->current_activation_lit();
     if (alit != undefSatLiteral)
     {
-      Trace("cadical::propagator") << " " << alit;
+      Trace("minisatup::propagator") << " " << alit;
     }
     for (const SatLiteral& lit : clause)
     {
-      Trace("cadical::propagator") << " " << lit;
+      Trace("minisatup::propagator") << " " << lit;
     }
-    Trace("cadical::propagator") << " 0" << std::endl;
+    Trace("minisatup::propagator") << " 0" << std::endl;
   }
   // If we are currently in search, add clauses through the propagator.
   if (d_propagator)
@@ -1340,7 +1340,7 @@ ClauseId MinisatUPSolver::addClause(SatClause& clause, bool removable)
   return ClauseIdError;
 }
 
-ClauseId MinisatUPSolver::addXorClause(SatClause& clause,
+ClauseId MiniSatUPSolver::addXorClause(SatClause& clause,
                                      bool rhs,
                                      bool removable)
 {
@@ -1348,7 +1348,7 @@ ClauseId MinisatUPSolver::addXorClause(SatClause& clause,
   return 0;
 }
 
-SatVariable MinisatUPSolver::newVar(bool isTheoryAtom, bool canErase)
+SatVariable MiniSatUPSolver::newVar(bool isTheoryAtom, bool canErase)
 {
   ++d_statistics.d_numVariables;
   if (d_propagator)
@@ -1358,30 +1358,30 @@ SatVariable MinisatUPSolver::newVar(bool isTheoryAtom, bool canErase)
   return d_nextVarIdx++;
 }
 
-SatVariable MinisatUPSolver::trueVar() { return d_true; }
+SatVariable MiniSatUPSolver::trueVar() { return d_true; }
 
-SatVariable MinisatUPSolver::falseVar() { return d_false; }
+SatVariable MiniSatUPSolver::falseVar() { return d_false; }
 
-SatValue MinisatUPSolver::solve() { return _solve({}); }
+SatValue MiniSatUPSolver::solve() { return _solve({}); }
 
-SatValue MinisatUPSolver::solve(long unsigned int&)
+SatValue MiniSatUPSolver::solve(long unsigned int&)
 {
   Unimplemented() << "Setting limits for CaDiCaL not supported yet";
   return SatValue::SAT_VALUE_UNKNOWN;
 };
 
-SatValue MinisatUPSolver::solve(const std::vector<SatLiteral>& assumptions)
+SatValue MiniSatUPSolver::solve(const std::vector<SatLiteral>& assumptions)
 {
   return _solve(assumptions);
 }
 
-bool MinisatUPSolver::setPropagateOnly()
+bool MiniSatUPSolver::setPropagateOnly()
 {
   d_solver->limit("decisions", 0); /* Gets reset after next solve() call. */
   return true;
 }
 
-void MinisatUPSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
+void MiniSatUPSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
 {
   for (const SatLiteral& lit : d_assumptions)
   {
@@ -1392,41 +1392,41 @@ void MinisatUPSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
   }
 }
 
-void MinisatUPSolver::interrupt() { d_solver->terminate(); }
+void MiniSatUPSolver::interrupt() { d_solver->terminate(); }
 
-SatValue MinisatUPSolver::value(SatLiteral l) { return d_propagator->value(l); }
+SatValue MiniSatUPSolver::value(SatLiteral l) { return d_propagator->value(l); }
 
-SatValue MinisatUPSolver::modelValue(SatLiteral l)
+SatValue MiniSatUPSolver::modelValue(SatLiteral l)
 {
   Assert(d_inSatMode);
   auto val = d_solver->val(toCadicalLit(l.getSatVariable()));
   return toSatValueLit(l.isNegated() ? -val : val);
 }
 
-uint32_t MinisatUPSolver::getAssertionLevel() const
+uint32_t MiniSatUPSolver::getAssertionLevel() const
 {
   Assert(d_propagator);
   return d_propagator->current_user_level();
 }
 
-bool MinisatUPSolver::ok() const { return d_inSatMode; }
+bool MiniSatUPSolver::ok() const { return d_inSatMode; }
 
-MinisatUPSolver::Statistics::Statistics(StatisticsRegistry& registry,
+MiniSatUPSolver::Statistics::Statistics(StatisticsRegistry& registry,
                                       const std::string& prefix)
-    : d_numSatCalls(registry.registerInt(prefix + "cadical::calls_to_solve")),
-      d_numVariables(registry.registerInt(prefix + "cadical::variables")),
-      d_numClauses(registry.registerInt(prefix + "cadical::clauses")),
-      d_solveTime(registry.registerTimer(prefix + "cadical::solve_time"))
+    : d_numSatCalls(registry.registerInt(prefix + "minisatup::calls_to_solve")),
+      d_numVariables(registry.registerInt(prefix + "minisatup::variables")),
+      d_numClauses(registry.registerInt(prefix + "minisatup::clauses")),
+      d_solveTime(registry.registerTimer(prefix + "minisatup::solve_time"))
   {
 }
 
 /* CDCLTSatSolver Interface ------------------------------------------------- */
 
-void MinisatUPSolver::initialize(prop::TheoryProxy* theoryProxy,
+void MiniSatUPSolver::initialize(prop::TheoryProxy* theoryProxy,
                                PropPfManager* ppm)
 {
   d_proxy = theoryProxy;
-  d_propagator.reset(new MinisatUPPropagator(
+  d_propagator.reset(new MiniSatUPPropagator(
       theoryProxy, d_context, *d_solver, statisticsRegistry()));
   if (!d_env.getPlugins().empty())
   {
@@ -1437,7 +1437,7 @@ void MinisatUPSolver::initialize(prop::TheoryProxy* theoryProxy,
   init();
 }
 
-void MinisatUPSolver::push()
+void MiniSatUPSolver::push()
 {
   d_context->push();  // SAT context for cvc5
   // Push new user level
@@ -1450,7 +1450,7 @@ void MinisatUPSolver::push()
 // Chenqi: pass the activation literal to user_push to be set in accordance with user_pop
 }
 
-void MinisatUPSolver::pop()
+void MiniSatUPSolver::pop()
 {
   d_context->pop();  // SAT context for cvc5
   d_propagator->user_pop();
@@ -1458,24 +1458,24 @@ void MinisatUPSolver::pop()
   // explicitly here
 }
 
-void MinisatUPSolver::resetTrail()
+void MiniSatUPSolver::resetTrail()
 {
   // Reset SAT context to decision level 0
   d_propagator->notify_backtrack(0);
 }
 
-void MinisatUPSolver::preferPhase(SatLiteral lit)
+void MiniSatUPSolver::preferPhase(SatLiteral lit)
 {
-  Trace("cadical::propagator") << "phase: " << lit << std::endl;
+  Trace("minisatup::propagator") << "phase: " << lit << std::endl;
   d_propagator->phase(lit);
 }
 
-bool MinisatUPSolver::isDecision(SatVariable var) const
+bool MiniSatUPSolver::isDecision(SatVariable var) const
 {
   return d_solver->is_decision(toCadicalVar(var));
 }
 
-bool MinisatUPSolver::isFixed(SatVariable var) const
+bool MiniSatUPSolver::isFixed(SatVariable var) const
 {
   if (d_propagator)
   {
@@ -1484,7 +1484,7 @@ bool MinisatUPSolver::isFixed(SatVariable var) const
   return d_solver->fixed(toCadicalVar(var));
 }
 
-std::vector<SatLiteral> MinisatUPSolver::getDecisions() const
+std::vector<SatLiteral> MiniSatUPSolver::getDecisions() const
 {
   std::vector<SatLiteral> decisions;
   for (SatLiteral lit : d_propagator->get_decisions())
@@ -1497,9 +1497,9 @@ std::vector<SatLiteral> MinisatUPSolver::getDecisions() const
   return decisions;
 }
 
-std::vector<Node> MinisatUPSolver::getOrderHeap() const { return {}; }
+std::vector<Node> MiniSatUPSolver::getOrderHeap() const { return {}; }
 
-std::shared_ptr<ProofNode> MinisatUPSolver::getProof()
+std::shared_ptr<ProofNode> MiniSatUPSolver::getProof()
 {
   // NOTE: we could return a DRAT_REFUTATION or LRAT_REFUTATION proof node
   // consisting of a single step, referencing the files for the DIMACS + proof.

@@ -14,7 +14,6 @@
  */
 
 #include "prop/sat_solver_factory.h"
-#include "options/smt_options.h"
 
 #include "prop/cadical.h"
 #include "prop/minisatup.h"
@@ -28,11 +27,6 @@ namespace prop {
 CDCLTSatSolver* SatSolverFactory::createCDCLTMinisat(
     Env& env, StatisticsRegistry& registry)
 {
-  if (!env.getOptions().smt.produceProofs) {
-    MinisatUPSolver* res = new MinisatUPSolver(env, registry, "");
-    res->setResourceLimit(env.getResourceManager());
-    return res;
-  }
   return new MinisatSatSolver(env, registry);
 }
 
@@ -59,7 +53,7 @@ CDCLTSatSolver* SatSolverFactory::createCadical(Env& env,
                                                 ResourceManager* resmgr,
                                                 const std::string& name)
 {
-  MinisatUPSolver* res = new MinisatUPSolver(env, registry, name);
+  CadicalSolver* res = new CadicalSolver(env, registry, name);
   res->init();
   res->setResourceLimit(resmgr);
   return res;
@@ -71,7 +65,18 @@ CDCLTSatSolver* SatSolverFactory::createCadicalCDCLT(
     ResourceManager* resmgr,
     const std::string& name)
 {
-  MinisatUPSolver* res = new MinisatUPSolver(env, registry, name);
+  CadicalSolver* res = new CadicalSolver(env, registry, name);
+  res->setResourceLimit(resmgr);
+  return res;
+}
+
+CDCLTSatSolver* SatSolverFactory::createMiniSatUP(
+    Env& env,
+    StatisticsRegistry& registry,
+    ResourceManager* resmgr,
+    const std::string& name)
+{
+  MiniSatUPSolver* res = new MiniSatUPSolver(env, registry, name);
   res->setResourceLimit(resmgr);
   return res;
 }
