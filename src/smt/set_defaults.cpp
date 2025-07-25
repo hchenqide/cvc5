@@ -1152,6 +1152,19 @@ bool SetDefaults::incompatibleWithProofs(Options& opts,
       return true;
     }
   }
+  else if (opts.prop.satSolver == options::SatSolverMode::MINISATUP)
+  {
+    if (opts.proof.propProofMode == options::PropProofMode::PROOF)
+    {
+      reason << "(resolution) proofs in MiniSatUP";
+      return true;
+    }
+    if (opts.smt.proofMode != options::ProofMode::PP_ONLY)
+    {
+      reason << "MiniSatUP";
+      return true;
+    }
+  }
   else if (opts.prop.satSolver == options::SatSolverMode::MINISAT)
   {
     // TODO (wishue #154): throw logic exception for modes e.g. DRAT or LRAT

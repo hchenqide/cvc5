@@ -96,14 +96,8 @@ PropEngine::PropEngine(Env& env, TheoryEngine* te)
   else
   {
     Assert(options().prop.satSolver == options::SatSolverMode::MINISATUP);
-    if (env.isSatProofProducing()) {
-      d_satSolver =
-          SatSolverFactory::createCDCLTMinisat(d_env, statisticsRegistry());
-    }
-    else {
-      d_satSolver = SatSolverFactory::createMiniSatUP(
-          d_env, statisticsRegistry(), env.getResourceManager(), "");
-    }
+    d_satSolver = SatSolverFactory::createMiniSatUP(
+        d_env, statisticsRegistry(), env.getResourceManager(), "");
   }
 
   // CNF stream and theory proxy required pointers to each other, make the
