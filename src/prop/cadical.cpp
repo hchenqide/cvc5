@@ -771,10 +771,6 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     // Unregister popped variables so that CaDiCaL does not notify us anymore
     // about assignments.
     Assert(pop_to <= d_active_vars.size());
-    // Chenqi: test
-    for (size_t i = pop_to; i < d_active_vars.size(); ++i) {
-      d_var_info[d_active_vars[i]].is_active = false;
-    }
     std::vector<SatVariable> fixed;
     while (d_active_vars.size() > pop_to)
     {
@@ -794,6 +790,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       else
       {
         Trace("cadical::propagator") << "set inactive: " << var << std::endl;
+        d_var_info[var].is_active = false;
         d_solver.remove_observed_var(toCadicalVar(var));
         Assert(info.level_intro > user_level);
         // Fix value of inactive variables in order to avoid CaDiCaL from

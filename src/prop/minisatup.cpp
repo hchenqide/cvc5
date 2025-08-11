@@ -144,9 +144,7 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
         d_decisions.back() = slit;
       }
 
-      Assert(info.assignment == 0 || info.assignment == lit);
-// Chenqi: how chould it be already assigned? and why couldn't it be the negation?
-      Assert(info.assignment == 0); // Chenqi: test
+      Assert(info.assignment == 0 || (info.assignment == lit && info.is_fixed)); // Chenqi: test
 
       // Only notify theory proxy if variable was assigned a new value, not if
       // it got fixed after assignment already happend.
@@ -163,16 +161,8 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
         }
       }
 
-      // MiniSatUP: notify_fixed_assignment is not implemented, set is_fixed if current decision level is 0
-      Assert(d_decisions.size() == d_assignment_control.size());
-      if (d_decisions.size() == 0)
-      {
-        Assert(info.level_intro == 0 || (info.level_intro > 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
-        Assert(!info.is_fixed);
-        info.is_fixed = true;
-        info.level_fixed = current_user_level();
-      }
-// Chenqi: the variable should also be fixed if the decision level is less than the user level when the activation level is not yet assumed
+      Assert(d_decisions.size() > 0 || info.is_fixed); // Chenqi: test (if at decision level 0, then must be fixed)
+// Chenqi: a variable should also be fixed if the decision level is less than the user level when the activation level is not yet assumed
     }
   }
 
@@ -284,7 +274,6 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
       auto& info = d_var_info[var];
       Trace("minisatup::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
       info.assignment = 0;
-      Assert(!info.is_fixed); // (MiniSatUP) Chenqi: test
     }
 // Chenqi: where are the fixed theory literals resent?
 
@@ -641,7 +630,6 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
       if (info.is_fixed)
       {
         int32_t val = lit.isNegated() ? -info.assignment : info.assignment;
-// Chenqi: this assertion might not hold, because in backtrack, fixed variables are also unassigned
         Assert(val != 0);
         if (val > 0)
         {
@@ -797,11 +785,6 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
     // Unregister popped variables so that CaDiCaL does not notify us anymore
     // about assignments.
     Assert(pop_to <= d_active_vars.size());
-// Chenqi: set is_active false for all variables to be inactivated before adding them as unit clauses
-    // Chenqi: test
-    for (size_t i = pop_to; i < d_active_vars.size(); ++i) {
-      d_var_info[d_active_vars[i]].is_active = false;
-    }
     std::vector<SatVariable> fixed;
     while (d_active_vars.size() > pop_to)
     {
@@ -822,6 +805,7 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
       else
       {
         Trace("minisatup::propagator") << "set inactive: " << var << std::endl;
+        d_var_info[var].is_active = false;
         d_solver.remove_observed_var(toCadicalVar(var));
         Assert(info.level_intro > user_level);
         // Fix value of inactive variables in order to avoid CaDiCaL from
