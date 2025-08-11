@@ -35,6 +35,7 @@ namespace prop {
 
 class MiniSatUPPropagator;
 class ClauseLearner;
+// class ProofTracer;
 
 class MiniSatUPSolver : public CDCLTSatSolver, protected EnvObj
 {
@@ -133,6 +134,8 @@ class MiniSatUPSolver : public CDCLTSatSolver, protected EnvObj
   std::unique_ptr<MiniSatUPPropagator> d_propagator;
   /** Clause learner instance for notifications about learned clauses. */
   std::unique_ptr<ClauseLearner> d_clause_learner;
+  /** Proof tracer instance for extracting unsat cores. */
+  // std::unique_ptr<ProofTracer> d_proof_tracer;
 
   /**
    * Stores the current set of assumptions provided via solve() and is used to
