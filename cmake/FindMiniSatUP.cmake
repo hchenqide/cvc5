@@ -54,7 +54,7 @@ if(NOT MiniSatUP_FOUND_SYSTEM)
     MiniSatUP-EP
     ${COMMON_EP_CONFIG}
     GIT_REPOSITORY https://github.com/hchenqide/minisat.git
-    GIT_TAG cvc5-ipasirup
+    GIT_TAG minisatup
     CONFIGURE_COMMAND mkdir -p <SOURCE_DIR>/build
     COMMAND ${CMAKE_COMMAND} -S <SOURCE_DIR> -B <SOURCE_DIR>/build -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     BUILD_COMMAND ${make_cmd} -C <SOURCE_DIR>/build
