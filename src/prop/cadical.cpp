@@ -200,7 +200,8 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
     Trace("cadical::propagator")
         << "notif::fixed assignment: " << slit << std::endl;
 
-    Assert(info.level_intro == 0 || (info.level_intro > 0 && d_decisions.size() == 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
+    Assert(d_decisions.size() == 0); // Chenqi: test
+    Assert(info.level_intro == 0 || (info.level_intro > 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
 
     // Mark as fixed.
     Assert(!info.is_fixed);
@@ -269,6 +270,7 @@ class CadicalPropagator : public CaDiCaL::ExternalPropagator,
       auto& info = d_var_info[var];
       Trace("cadical::propagator") << "unassign: " << var << (info.is_fixed ? " (fixed)" : "") << std::endl; // Chenqi: test
       info.assignment = 0;
+      Assert(!info.is_fixed); // Chenqi: test
     }
 
     // Notify theory proxy about backtrack
