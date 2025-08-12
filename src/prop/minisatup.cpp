@@ -203,7 +203,7 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
 
 // Chenqi: if a fixed variable is a unit at decision level 0, then it must also be added at user level 0, because otherwise it will be dependent on activation literals and wouldn't be a root level unit
 // Chenqi: or it is the activation literal itself when there's a conflict within the assumptions and it will lead to unsat
-    Assert(info.level_intro == 0 || (info.level_intro > 0 && d_decisions.size() == 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
+    Assert(info.level_intro == 0 || (info.level_intro > 0 && slit == d_activation_literals[info.level_intro - 1])); // Chenqi: test
 
     // Mark as fixed.
     Assert(!info.is_fixed);
