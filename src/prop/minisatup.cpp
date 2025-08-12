@@ -1589,13 +1589,7 @@ void MiniSatUPSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
 
 void MiniSatUPSolver::interrupt() { d_solver->terminate(); }
 
-SatValue MiniSatUPSolver::value(SatLiteral l) {
-// Chenqi: modelValue() should be called if not in search
-  if (d_inSatMode) {
-    return modelValue(l);
-  }
-  return d_propagator->value(l);
-}
+SatValue MiniSatUPSolver::value(SatLiteral l) { return d_propagator->value(l); }
 
 SatValue MiniSatUPSolver::modelValue(SatLiteral l)
 {
