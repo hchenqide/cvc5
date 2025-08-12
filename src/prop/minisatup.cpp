@@ -1600,7 +1600,7 @@ SatValue MiniSatUPSolver::value(SatLiteral l) {
 SatValue MiniSatUPSolver::modelValue(SatLiteral l)
 {
   Assert(d_inSatMode);
-  auto val = d_solver->val(toCadicalLit(l.getSatVariable()));
+  auto val = d_solver->val(toCadicalLit(l));
   return toSatValueLit(l.isNegated() ? -val : val);
 }
 
