@@ -144,7 +144,7 @@ class MiniSatUPPropagator : public MiniSatUP::ExternalPropagator,
         d_decisions.back() = slit;
       }
 
-      Assert(info.assignment == 0 || (info.assignment == lit && info.is_fixed)); // Chenqi: test
+      Assert(info.assignment == 0 || info.assignment == lit);
 
       // Only notify theory proxy if variable was assigned a new value, not if
       // it got fixed after assignment already happend.
